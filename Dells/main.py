@@ -3,9 +3,10 @@ import time
 import math
 import random
 from collections import Counter
-from typing import Union, Optional
 
-from PySide6.QtWidgets import QDialog, QApplication, QRadioButton, QLabel, QVBoxLayout
+from PySide6.QtCore import Qt, QSize, QMetaObject, QCoreApplication
+from PySide6.QtWidgets import QMainWindow, QApplication, QRadioButton, QLabel, QVBoxLayout, QWidget, QGridLayout, \
+    QSizePolicy, QTextBrowser, QLineEdit, QPushButton
 from PySide6 import QtUiTools
 
 def rabinMiller(n, trials=5):
@@ -132,12 +133,106 @@ def is_prime1(n):
             return False
     return True
 
-class AppWindow(QDialog):
+class AppWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.ui = QtUiTools.QUiLoader().load("design.ui")
+        self.ui =QtUiTools.QUiLoader().load("design.ui", self)
+        self.setCentralWidget(self.ui)
         self.ui.show()
 
+        # Применение стилей
+        self.setStyleSheet("""
+                    QLineEdit#le_entry_dells {
+                        font-size: 16px;
+                        min-height: 60px;  /* Чтобы вместить многострочный вывод */
+                    }
+                    QMainWindow {
+                        background-color: #f5f5f5;
+                        font-family: 'Segoe UI';
+                    }
+                    QLabel#lbl_temp {
+                        font-size: 28px;
+                        font-weight: bold;
+                        color: #2c3e50;
+                        border: 1px solid #cccccc;
+                        border-radius: 4px;
+                        background-color: white;
+                        padding: 5px 10px;
+                    }
+                    QLineEdit {
+                        font-size: 20px;
+                        border: 1px solid #cccccc;
+                        border-radius: 4px;
+                        padding: 5px;
+                        background-color: white;
+                    }
+                    QPushButton {
+                        font-size: 18px;
+                        font-weight: bold;
+                        color: white;
+                        background-color: #4CAF50;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 10px;
+                        min-width: 50px;
+                    }
+                    QPushButton:hover {
+                        background-color: #45a049;
+                    }
+                    QPushButton:pressed {
+                        background-color: #3d8b40;
+                    }
+                    QRadioButton {
+                        font-size: 14px;
+                        spacing: 5px;
+                    }
+                    QTextEdit#le_entry_dells {
+                        font-size: 14px;
+                        border: 1px solid #cccccc;
+                        border-radius: 4px;
+                        padding: 5px;
+                        background-color: white;
+                    }
+                    
+                    QScrollBar:vertical {
+                        width: 12px;
+                        background: #f1f1f1;
+                        border-radius: 6px;
+                    }
+                    
+                    QScrollBar::handle:vertical {
+                        background: #a0a0a0;
+                        min-height: 20px;
+                        border-radius: 6px;
+                    }
+                    
+                    QScrollBar::handle:vertical:hover {
+                        background: #808080;
+                    }
+                    QTextBrowser {
+                        font-size: 12px;
+                        border: none;
+                        background-color: transparent;
+                    }
+                    #btn_C, #btn_back {
+                        background-color: #f44336;
+                    }
+                    #btn_C:hover, #btn_back:hover {
+                        background-color: #d32f2f;
+                    }
+                    #btn_C:pressed, #btn_back:pressed {
+                        background-color: #b71c1c;
+                    }
+                    #btn_ans {
+                        background-color: #2196F3;
+                    }
+                    #btn_ans:hover {
+                        background-color: #1976D2;
+                    }
+                    #btn_ans:pressed {
+                        background-color: #0D47A1;
+                    }
+                """)
         # digits
         self.ui.btn_0.clicked.connect(lambda: self.add_digit('0'))
         self.ui.btn_1.clicked.connect(lambda: self.add_digit('1'))
@@ -166,33 +261,69 @@ class AppWindow(QDialog):
         self.ui.lbl_temp.clear()
 
     def calculate(self):
-        if self.ui.radioButton.isChecked():
-            start_time = time.time()
-            l = get_dividers(int(self.ui.lbl_temp.text()))
-            s = ''
-            for i in l:
-                s+=str(i)+' '
-            end_time = time.time()
-            self.ui.le_entry_dells.setText(s[:-1])
-            self.ui.le_entry_time.setText(str(end_time - start_time))
-        if self.ui.radioButton_2.isChecked():
-            l = trial_division(int(self.ui.lbl_temp.text()))
-            s = ''
-            for i in l:
-                s+=str(i)+' '
-            self.ui.le_entry_dells.setText(s[:-1])
-        if self.ui.radioButton_2.isChecked():
-            l = trial_division(int(self.ui.lbl_temp.text()))
-            s = ''
-            for i in l:
-                s+=str(i)+' '
-            self.ui.le_entry_dells.setText(s[:-1])
-        if self.ui.radioButton_3.isChecked():
-            l = get_all_factors(int(self.ui.lbl_temp.text()))
-            s = ''
-            for i in l:
-                s+=str(i)+' '
-            self.ui.le_entry_dells.setText(s[:-1])
+        try:
+            number = int(self.ui.lbl_temp.text())
+            if number < 1:
+                self.ui.le_entry_dells.setHtml("<div style='color:red; font-size:14pt;'>Введите число > 0</div>")
+                return
+
+            start_time = time.perf_counter()  # Более точное время
+
+            if self.ui.radioButton.isChecked():  # Поллард
+                method_name = "Ро-алгоритм Полларда"
+                factors = get_dividers(number)
+            elif self.ui.radioButton_2.isChecked():  # Пробное деление
+                method_name = "Метод пробного деления"
+                factors = trial_division(number)
+            elif self.ui.radioButton_3.isChecked():  # Ферма
+                method_name = "Метод Ферма"
+                factors = get_all_factors(number)
+            else:
+                return
+
+            exec_time = time.perf_counter() - start_time
+
+            # Форматируем вывод
+            factor_counts = Counter(factors)
+            prime_factors = []
+            for factor, count in sorted(factor_counts.items()):
+                if count > 1:
+                    prime_factors.append(f"{factor}<sup>{count}</sup>")
+                else:
+                    prime_factors.append(str(factor))
+
+            # Форматируем время выполнения
+            if exec_time < 0.001:
+                time_str = f"{exec_time * 1e6:.2f} μs"
+            elif exec_time < 1:
+                time_str = f"{exec_time * 1e3:.2f} ms"
+            else:
+                time_str = f"{exec_time:.5f} s"
+
+            # Создаем HTML-контент
+            html_content = f"""
+            <div style='font-family: Segoe UI; font-size: 14pt;'>
+                <div style='margin-bottom: 10px; padding: 5px; background-color: #f8f9fa; border-radius: 4px;'>
+                    <p><b>Метод:</b> {method_name}</p>
+                    <p><b>Время выполнения:</b> <span style='color: #2c7be5;'>{time_str}</span></p>
+                </div>
+
+                <p><b>Исходное число:</b> {number}</p>
+                <p><b>Каноническое разложение:</b> {' × '.join(prime_factors)}</p>
+
+                <div style='margin-top: 10px;'>
+                    <b>Все делители ({len(set(factors))}):</b>
+                    <div style='max-height: 150px; overflow-y: auto; border: 1px solid #eee; padding: 5px; margin-top: 5px;'>
+                        {', '.join(sorted(map(str, set(factors)), key=int))}
+                    < / div >
+                < / div >
+            < / div >
+            """
+
+            self.ui.le_entry_dells.setHtml(html_content)
+
+        except ValueError:
+            self.ui.le_entry_dells.setHtml("<div style='color:red; font-size:14pt;'>Ошибка: введите целое число</div>")
 
 
 app = QApplication(sys.argv)
